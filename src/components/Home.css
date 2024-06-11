@@ -35,3 +35,24 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+
+/* App.css */
+.comics-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.comic-item {
+    border: 1px solid #ccc;
+    padding: 16px;
+    border-radius: 8px;
+    width: 200px;
+    text-align: center;
+}
+
+.thumbnail {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
