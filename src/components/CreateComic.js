@@ -1,50 +1,53 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const CreateComic = () => {
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // API 호출하여 만화 장면 생성
+  const handleCreateComic = async () => {
+    const userId = localStorage.getItem('userId'); // Assuming userId is stored in localStorage after login
+    console.log('userId:', userId);
+    if (!title) {
+      alert('Please enter a title for the comic.');
+      return;
+    }
+
     try {
       const response = await fetch(
-        'http://localhost:8080/api/comics/createPost',
+        'http://localhost:8080/api/comics/createComic',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`, // Add your token here
           },
-          body: JSON.stringify({
-            description,
-            comicId: 'someComicId',
-            userId: 'someUserId',
-          }), // 적절한 comicId와 userId를 설정
+          body: JSON.stringify({ title, userId }),
         }
       );
-      if (response.ok) {
-        alert('Comic scene created successfully');
-      } else {
-        alert('Error creating comic scene');
+
+      if (!response.ok) {
+        throw new Error('Failed to create comic');
       }
+
+      const comic = await response.json();
+      navigate(`/comic/${comic.id}`);
     } catch (error) {
-      console.error('Error creating comic scene:', error);
+      console.error('Error creating comic:', error);
+      alert('Error creating comic. Please try again.');
     }
   };
 
   return (
-    <div>
+    <div className="create-comic-container">
       <h1>Create Your Own Comic</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Scene Description:
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
-        <button type="submit">Create Scene</button>
-      </form>
+      <input
+        type="text"
+        placeholder="Enter comic title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <button onClick={handleCreateComic}>Create Comic</button>
     </div>
   );
 };

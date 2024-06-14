@@ -20,6 +20,9 @@ const Login = () => {
     });
 
     if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem('userId', data.userId);
+      localStorage.setItem('token', data.token);
       navigate('/home');
     } else {
       setError('Invalid username or password');
