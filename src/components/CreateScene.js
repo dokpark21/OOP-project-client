@@ -1,27 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import './CreateScene.css';
 
 const CreateScene = () => {
-  const { comicId } = useParams(); // Get the comic ID from the URL parameters
+  const { comicId } = useParams();
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState(null);
-  const [sceneId, setSceneId] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
   const [acceptedScenes, setAcceptedScenes] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAcceptedScenes = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8080/api/comics/${comicId}/acceptedScenes`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
+          `http://localhost:8080/api/comics/${comicId}/acceptedScenes`
         );
-        const scenes = await response.json();
-        setAcceptedScenes(scenes);
+        if (!response.ok) {
+          throw new Error('Failed to fetch scenes');
+        }
+        const scenesData = await response.json();
+        setAcceptedScenes(scenesData);
       } catch (error) {
         console.error('Error fetching accepted scenes:', error);
       }
@@ -30,12 +28,26 @@ const CreateScene = () => {
     fetchAcceptedScenes();
   }, [comicId]);
 
-  const handleCreateScene = async () => {
-    if (!description) {
-      alert('Please enter a description for the scene.');
-      return;
+  const handleGenerateScene = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/dalle/image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: description }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to generate image');
+      }
+      const imageUrl = await response.json();
+      setImageUrl(imageUrl);
+    } catch (error) {
+      console.error('Error generating image:', error);
     }
+  };
 
+  const handleAcceptScene = async () => {
     try {
       const response = await fetch('http://localhost:8080/api/comics/scenes', {
         method: 'POST',
@@ -45,86 +57,83 @@ const CreateScene = () => {
         },
         body: JSON.stringify({
           description,
+          imageUrl,
           comicId,
           userId: localStorage.getItem('userId'),
         }),
       });
-
       if (!response.ok) {
-        throw new Error('Failed to create scene');
+        throw new Error('Failed to accept scene');
       }
-
-      const scene = await response.json();
-      setImageUrl(scene.imageUrl);
-      setSceneId(scene.id); // Store the scene ID for deletion if needed
+      const newScene = await response.json();
+      setAcceptedScenes([...acceptedScenes, newScene]);
+      setDescription('');
+      setImageUrl('');
     } catch (error) {
-      console.error('Error creating scene:', error);
-      alert('Error creating scene. Please try again.');
+      console.error('Error accepting scene:', error);
     }
-  };
-
-  const handleAcceptScene = () => {
-    alert('Scene accepted!');
-    setDescription('');
-    setImageUrl(null);
-    setSceneId(null);
   };
 
   const handleRejectScene = async () => {
-    if (sceneId) {
-      try {
-        const response = await fetch(
-          `http://localhost:8080/api/comics/scenes/${sceneId}`,
-          {
-            method: 'DELETE',
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to delete scene');
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/comics/scenes/${comicId}/deleteScene`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
         }
-
-        alert('Scene rejected and deleted.');
-        setDescription('');
-        setImageUrl(null);
-        setSceneId(null);
-      } catch (error) {
-        console.error('Error deleting scene:', error);
-        alert('Error deleting scene. Please try again.');
+      );
+      if (!response.ok) {
+        throw new Error('Failed to delete scene');
       }
+      setImageUrl('');
+    } catch (error) {
+      console.error('Error deleting scene:', error);
     }
+  };
+
+  const handleDone = () => {
+    navigate('/home');
   };
 
   return (
     <div className="create-scene-container">
-      <h1>Create a Scene for Your Comic</h1>
+      <h1>Create Scene</h1>
       <div className="accepted-scenes">
         {acceptedScenes.map((scene) => (
-          <div key={scene.id} className="accepted-scene">
-            <img src={scene.imageUrl} alt="Accepted scene" />
+          <div key={scene.id} className="accepted-scene-item">
+            <img
+              src={scene.imageUrl}
+              alt={scene.description}
+              className="accepted-scene-thumbnail"
+            />
             <p>{scene.description}</p>
           </div>
         ))}
       </div>
-      <textarea
-        placeholder="Enter scene description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      ></textarea>
-      <button onClick={handleCreateScene}>Create Scene</button>
-      {imageUrl && (
-        <div className="scene-image">
-          <h2>Generated Scene Image</h2>
-          <img src={imageUrl} alt="Generated scene" />
-          <div className="scene-buttons">
-            <button onClick={handleAcceptScene}>Accept</button>
-            <button onClick={handleRejectScene}>Reject</button>
+      <div className="create-scene-form">
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe your scene"
+        />
+        <button onClick={handleGenerateScene}>Generate Scene</button>
+        {imageUrl && (
+          <div className="generated-scene">
+            <img src={imageUrl} alt="Generated scene" />
+            <div className="scene-actions">
+              <button onClick={handleAcceptScene}>Accept</button>
+              <button onClick={handleRejectScene}>Reject</button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <button className="done-button" onClick={handleDone}>
+        Done
+      </button>
     </div>
   );
 };
