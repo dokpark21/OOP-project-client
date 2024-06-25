@@ -40,7 +40,13 @@ const CreateScene = () => {
       if (!response.ok) {
         throw new Error('Failed to generate image');
       }
-      const imageUrl = await response.json();
+      const responseBody = await response.text();
+      let imageUrl;
+      try {
+        imageUrl = JSON.parse(responseBody);
+      } catch {
+        imageUrl = responseBody;
+      }
       setImageUrl(imageUrl);
     } catch (error) {
       console.error('Error generating image:', error);
