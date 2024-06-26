@@ -45,6 +45,10 @@ const Home = () => {
     navigate('/create'); // "/create" 페이지로 리다이렉트
   };
 
+  const handleComicClick = (comicId) => {
+    navigate(`/comic/${comicId}`);
+  };
+
   return (
     <div className="home-container">
       <div className="navbar">
@@ -92,7 +96,11 @@ const Home = () => {
       </div>
       <div className="comics-list">
         {comics.map((comic) => (
-          <div key={comic.id} className="comic-item">
+          <div
+            key={comic.id}
+            className="comic-item"
+            onClick={() => handleComicClick(comic.id)}
+          >
             <div className="thumbnail-container">
               <img
                 src={comic.thumbnailUrl}

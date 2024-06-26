@@ -31,7 +31,7 @@ const CreateComic = () => {
       }
 
       const comic = await response.json();
-      navigate(`/comic/${comic.id}`);
+      navigate(`/${comic.id}/createScene`); // Created comic's scene creation page
     } catch (error) {
       console.error('Error creating comic:', error);
       alert('Error creating comic. Please try again.');
